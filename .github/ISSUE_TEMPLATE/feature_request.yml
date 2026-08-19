@@ -1,0 +1,40 @@
+name: Feature Request
+description: Propose a new feature, enhancement, or architectural improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature enhancement for PG-Manager.
+
+  - type: input
+    id: title
+    attributes:
+      label: Feature Title
+      description: Concise summary of the proposed capability.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What operational limitation or problem does this feature solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution & User Workflow
+      description: Detailed description of how the feature should behave and integrate with existing RBAC modules.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Approaches Considered
+      description: Any alternative implementations or solutions considered.
+    validations:
+      required: false

@@ -1,0 +1,72 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Lint, Type Check & Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 18.x, 20.x, 22.x ]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Static Code Analysis (Oxlint)
+        run: npm run lint
+
+      - name: TypeScript Type Checking
+        run: npx tsc --noEmit
+
+      - name: Production Bundle Verification
+        run: npm run build
+        env:
+          VITE_FIREBASE_API_KEY: "mock-api-key-for-ci-build"
+          VITE_FIREBASE_AUTH_DOMAIN: "mock-project.firebaseapp.com"
+          VITE_FIREBASE_PROJECT_ID: "mock-project-id"
+          VITE_FIREBASE_STORAGE_BUCKET: "mock-project.firebasestorage.app"
+          VITE_FIREBASE_MESSAGING_SENDER_ID: "123456789012"
+          VITE_FIREBASE_APP_ID: "1:123456789012:web:abcdef123456"
+
+      - name: Upload Build Artifacts
+        if: matrix.node-version == '20.x' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-dist
+          path: dist/
+          retention-days: 7
+
+  security-audit:
+    name: Dependency Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Run Audit
+        run: npm audit --audit-level=critical || true

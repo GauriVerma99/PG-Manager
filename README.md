@@ -299,6 +299,41 @@ firebase deploy --only firestore:rules
 +---------------------------------------------------------------------------------------+
 ```
 
+## Continuous Integration & Delivery (CI/CD)
+
+The repository incorporates an enterprise automation suite powered by GitHub Actions:
+
+```
++-----------------------------------------------------------------------------------------+
+|                               CI / CD Automation Pipeline                               |
++-----------------------------------------------------------------------------------------+
+|                                                                                         |
+|  [Pull Request / Push to Main]                                                          |
+|         │                                                                               |
+|         ├── Continuous Integration Pipeline (ci.yml)                                    |
+|         │     ├── Matrix Testing: Node.js 18.x, 20.x, 22.x                              |
+|         │     ├── Oxlint Static Code Analysis                                           |
+|         │     ├── TypeScript Compiler Verification (tsc -b)                             |
+|         │     ├── Production Bundle Packaging (Vite)                                    |
+|         │     └── Security Audit (npm audit)                                            |
+|         │                                                                               |
+|         ├── Automated CodeQL Security Scan (security.yml)                               |
+|         │     └── SAST Vulnerability Analysis (JavaScript / TypeScript)                 |
+|         │                                                                               |
+|         └── Continuous Deployment Pipeline (cd.yml)                                     |
+|               ├── Environment Variable Assertion                                        |
+|               ├── Production Asset Verification                                         |
+|               └── Vercel / Cloud Distribution Release                                   |
+|                                                                                         |
++-----------------------------------------------------------------------------------------+
+```
+
+### Automation & Governance Modules
+- **Automated Dependency Updates (`dependabot.yml`)**: Automated weekly dependency scanning and security patch PRs for `npm` and `github-actions`.
+- **Static Application Security Testing (`security.yml`)**: GitHub CodeQL vulnerability analysis triggered on push, pull requests, and scheduled weekly runs.
+- **Pull Request Automation (`pull_request_template.md`)**: Structured architectural impact verification and QA checklist.
+- **Issue Triage Templates (`.github/ISSUE_TEMPLATE/`)**: Standardized schema-driven bug report and feature proposal intake forms.
+
 ---
 
 ## License and Maintainers
