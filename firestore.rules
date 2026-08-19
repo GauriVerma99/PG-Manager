@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Function to check if user is Super Admin
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Function to check if user owns the PG
+    function isOwner(pgId) {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.pgId == pgId && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // 1. Users Collection (Profile Data)
+    match /users/{userId} {
+      // Anyone can create their profile when they register
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // Users can read/update their own profile, SuperAdmins can read/update all
+      allow read, update: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
+      allow delete: if isSuperAdmin();
+    }
+
+    // 2. PG Settings / Public Listings
+    match /pg_settings/{pgId} {
+      // Public discovery: Anyone can read verified PGs
+      allow read: if true;
+      // Only the specific PG Owner or SuperAdmin can create/update
+      allow create, update: if isOwner(pgId) || isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // 3. Tenants Collection
+    match /tenants/{tenantId} {
+      // Tenants can read their own lease/data
+      allow read: if request.auth != null && (request.auth.uid == tenantId);
+      // Owners can read/write all tenants in their PG
+      allow read, write: if request.auth != null && (isOwner(resource.data.pgId) || isSuperAdmin());
+    }
+
+    // 4. Applications (Tenant Onboarding)
+    match /applications/{appId} {
+      // Prospective tenants can create and read their own applications
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Owners can view and approve/reject applications for their PG
+      allow read, update: if request.auth != null && (isOwner(resource.data.pgId) || isSuperAdmin());
+    }
+
+    // 5. Bills & Payments
+    match /bills/{billId} {
+      allow read: if request.auth != null && (resource.data.tenantId == request.auth.uid || isOwner(resource.data.pgId) || isSuperAdmin());
+      allow create, update: if request.auth != null && (isOwner(resource.data.pgId) || isSuperAdmin() || request.resource.data.status == 'Processing'); // Tenants can update status to processing
+      allow delete: if false; // Financial records should never be deleted
+    }
+
+    // 6. Complaints & Ticketing
+    match /complaints/{complaintId} {
+      allow create: if request.auth != null && request.resource.data.tenantId == request.auth.uid;
+      allow read: if request.auth != null && (resource.data.tenantId == request.auth.uid || isOwner(resource.data.pgId) || isSuperAdmin());
+      allow update: if request.auth != null && (resource.data.tenantId == request.auth.uid || isOwner(resource.data.pgId) || isSuperAdmin());
+      allow delete: if isSuperAdmin();
+    }
+    
+    // 7. Cleaning / Staff Logs
+    match /cleaningLogs/{logId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && (isOwner(resource.data.pgId) || request.auth.uid == resource.data.staffId || isSuperAdmin());
+    }
+  }
+}
